@@ -1,4 +1,4 @@
-const CACHE_NAME = 'eval-eps-v2';
+const CACHE_NAME = 'eval-eps-v3';
 const urlsToCache = [
   './',
   './index.html',
