@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Éval EPS</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#4F46E5">
+    <meta name="description" content="Application d'évaluation EPS par code couleurs">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Éval EPS">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <style>
+        /* --- VARIABLES & RESET --- */
+        :root {
+            /* Palette Moderne */
+            --primary: #4F46E5;
+            --primary-light: #EEF2FF;
+            --primary-dark: #3730A3;
+            
+            --bg-body: #F3F4F6;
+            --bg-card: #FFFFFF;
+            
+            --text-main: #1F2937;
+            --text-muted: #6B7280;
+            --border: #E5E7EB;
+
+            /* Couleurs EPS (Vibrantes mais douces) */
+            --c-rouge: #EF4444; --bg-rouge: #FEE2E2;
+            --c-bleu: #3B82F6;  --bg-bleu: #DBEAFE;
+            --c-vert: #10B981;  --bg-vert: #D1FAE5;
+            --c-jaune: #F59E0B; --bg-jaune: #FEF3C7;
+
+            /* UI Elements */
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            /* Polices système qui ressemblent à Inter/Poppins - 100% offline */
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding-bottom: 100px;
+            padding-top: 70px;
+        }
+
+        h1, h2, h3 { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        /* --- HEADER MODERNE --- */
+        header {
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 20px;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .brand {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Navigation Style "Pill" */
+        .nav-buttons {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 4px;
+            scrollbar-width: none; /* Firefox */
+        }
+        .nav-buttons::-webkit-scrollbar { display: none; } /* Chrome */
+
+        .nav-buttons button {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        
+        .nav-buttons button.active {
+            background-color: var(--primary-light);
+            color: var(--primary);
+        }
+        
+        .nav-buttons button:hover:not(.active) { 
+            background-color: #F9FAFB; 
+        }
+
+        /* --- CONTAINERS --- */
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 15px;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+
+        .view-section { display: none; }
+        .view-section.active { display: block; }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: var(--text-main);
+            border-bottom: 2px solid var(--primary-light);
+            padding-bottom: 10px;
+            display: inline-block;
+        }
+
+        /* --- FORMULAIRES --- */
+        .form-group { margin-bottom: 15px; }
+        
+        label { 
+            display: block; 
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        input[type="number"], input[type="text"], select {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 1rem;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-md);
+            background-color: #FAFAFA;
+            transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            background-color: white;
+            box-shadow: 0 0 0 4px var(--primary-light);
+        }
+
+        /* --- BOUTONS COULEURS (Saisie) --- */
+        .consigne-row {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 15px 20px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s, background 0.3s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            /* Amélioration tactile Android */
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .consigne-row:active { transform: scale(0.98); }
+
+        /* État NON sélectionné - GRIS/BLANC uniquement */
+        .consigne-row:not(.selected) {
+            background: white;
+            border-left: 1px solid var(--border);
+        }
+
+        /* État sélectionné - COULEUR apparaît */
+        .consigne-row.selected {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+        
+        .consigne-row.selected.theme-rouge { 
+            background: linear-gradient(135deg, var(--bg-rouge) 0%, #ffffff 100%);
+            border-left: 6px solid var(--c-rouge); 
+        }
+        .consigne-row.selected.theme-bleu { 
+            background: linear-gradient(135deg, var(--bg-bleu) 0%, #ffffff 100%);
+            border-left: 6px solid var(--c-bleu); 
+        }
+        .consigne-row.selected.theme-vert { 
+            background: linear-gradient(135deg, var(--bg-vert) 0%, #ffffff 100%);
+            border-left: 6px solid var(--c-vert); 
+        }
+        .consigne-row.selected.theme-jaune { 
+            background: linear-gradient(135deg, var(--bg-jaune) 0%, #ffffff 100%);
+            border-left: 6px solid var(--c-jaune); 
+        }
+        
+        .consigne-info {
+            flex: 1;
+        }
+
+        .consigne-info h3 {
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            color: var(--text-main);
+            font-weight: 700;
+        }
+
+        .badge-points {
+            background: var(--text-main);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            display: inline-block;
+        }
+        
+        /* Zone du bouton unique */
+        .color-action {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-left: 15px;
+            min-width: 90px;
+        }
+        
+        .btn-color-single {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 4px solid var(--border);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            opacity: 0.5;
+            position: relative;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+        }
+        
+        .btn-color-single:active { 
+            transform: scale(0.92); 
+        }
+        
+        /* État Validé - COULEUR apparaît */
+        .btn-color-single.selected {
+            transform: scale(1.15);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+            opacity: 1;
+            border-width: 5px;
+        }
+        
+        /* Checkmark visible quand sélectionné avec animation */
+        .btn-color-single.selected::before {
+            content: "✓";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            color: white;
+            font-size: 36px;
+            font-weight: 900;
+            text-shadow: 0 3px 10px rgba(0,0,0,0.5);
+            animation: checkPop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+        }
+        
+        @keyframes checkPop {
+            0% { transform: translate(-50%, -50%) scale(0) rotate(-45deg); }
+            50% { transform: translate(-50%, -50%) scale(1.2) rotate(5deg); }
+            100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+        }
+        
+        /* Couleurs saturées avec glow SEULEMENT quand sélectionné */
+        .btn-color-single.bg-rouge.selected { 
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            border-color: white;
+            box-shadow: 0 20px 25px -5px rgba(239, 68, 68, 0.5), 0 0 40px rgba(239, 68, 68, 0.4);
+        }
+        .btn-color-single.bg-bleu.selected { 
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            border-color: white;
+            box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.4);
+        }
+        .btn-color-single.bg-vert.selected { 
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-color: white;
+            box-shadow: 0 20px 25px -5px rgba(16, 185, 129, 0.5), 0 0 40px rgba(16, 185, 129, 0.4);
+        }
+        .btn-color-single.bg-jaune.selected { 
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            border-color: white;
+            box-shadow: 0 20px 25px -5px rgba(245, 158, 11, 0.5), 0 0 40px rgba(245, 158, 11, 0.4);
+        }
+
+        .validation-text {
+            font-size: 0.7rem;
+            margin-top: 8px;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .consigne-row.selected .validation-text {
+            color: var(--text-main);
+            font-weight: 800;
+        }
+
+        /* --- BOUTON ACTION --- */
+        .btn-main {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            padding: 15px 24px;
+            width: 100%;
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--shadow-md);
+        }
+        .btn-main:hover { 
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        .btn-main:active {
+            transform: translateY(0);
+        }
+        
+        .btn-danger { 
+            background-color: var(--c-rouge); 
+            color: white; 
+            border: none; 
+            padding: 8px 12px; 
+            border-radius: var(--radius-md); 
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-danger:hover {
+            background-color: #dc2626;
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary { 
+            background-color: var(--text-muted); 
+            color: white; 
+            border: none; 
+            padding: 8px 12px; 
+            border-radius: var(--radius-md); 
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-secondary:hover {
+            background-color: #4b5563;
+            transform: translateY(-1px);
+        }
+        
+        /* --- TABLEAU ARCHIVES --- */
+        .table-responsive { overflow-x: auto; }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            min-width: 500px; 
+        }
+        th, td { 
+            padding: 12px; 
+            text-align: left; 
+            border-bottom: 1px solid var(--border); 
+        }
+        th { 
+            background-color: var(--primary-light);
+            color: var(--primary);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+        }
+        tr:hover {
+            background-color: #F9FAFB;
+        }
+        
+        /* --- PARAMETRES --- */
+        .param-list-item {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        .param-consigne-card {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 15px;
+            margin-bottom: 10px;
+            background: white;
+        }
+
+        /* --- TOAST NOTIFICATION --- */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: var(--text-main);
+            color: #fff;
+            text-align: center;
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            position: fixed;
+            z-index: 10000;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            box-shadow: var(--shadow-lg);
+            font-weight: 600;
+        }
+        #toast.show { 
+            visibility: visible; 
+            animation: toastFadeIn 0.3s ease-out, toastFadeOut 0.3s ease-in 2.7s; 
+        }
+        
+        @keyframes toastFadeIn { 
+            from { bottom: 0; opacity: 0; transform: translateX(-50%) translateY(20px); } 
+            to { bottom: 30px; opacity: 1; transform: translateX(-50%) translateY(0); } 
+        }
+        @keyframes toastFadeOut { 
+            from { bottom: 30px; opacity: 1; } 
+            to { bottom: 0; opacity: 0; } 
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header>
+        <div class="brand">⚡ EPS Éval</div>
+        <div class="nav-buttons">
+            <button id="nav-saisie" class="active" onclick="showSection('saisie')">Saisie</button>
+            <button id="nav-archives" onclick="showSection('archives')">Archives</button>
+            <button id="nav-csv" onclick="showSection('csv')">📄 CSV</button>
+            <button id="nav-parametres" onclick="showSection('parametres')">⚙️</button>
+        </div>
+    </header>
+
+    <!-- SECTION 1: SAISIE (Main) -->
+    <div id="section-saisie" class="container view-section active">
+        <div class="card">
+            <h2>Nouvelle évaluation</h2>
+            
+            <div class="form-group">
+                <label for="eleve-classe">Classe :</label>
+                <select id="eleve-classe">
+                    <!-- Rempli par JS -->
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="eleve-id">Identifiant Élève (1-30) :</label>
+                <input type="number" id="eleve-id" min="1" max="30" placeholder="Ex: 12">
+            </div>
+        </div>
+
+        <div id="consignes-container">
+            <!-- Les consignes seront générées ici par JS -->
+        </div>
+
+        <button class="btn-main" onclick="validerSaisie()">💾 Valider & Enregistrer</button>
+    </div>
+
+    <!-- SECTION 2: ARCHIVES -->
+    <div id="section-archives" class="container view-section">
+        <div class="card">
+            <h2>Archives des résultats</h2>
+            
+            <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
+                <button class="btn-main" style="background:#27ae60; flex:1;" onclick="genererNouveauCSV()">📊 Générer un CSV</button>
+            </div>
+
+            <div class="form-group">
+                <label>Filtrer par classe :</label>
+                <select id="filter-classe" onchange="renderArchivesTable()">
+                    <option value="all">Toutes</option>
+                    <!-- Rempli par JS -->
+                </select>
+            </div>
+
+            <div class="table-responsive">
+                <table id="table-archives">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Classe</th>
+                            <th>Élève</th>
+                            <th>Score</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Lignes générées par JS -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn-danger" onclick="viderArchives()">🗑 Tout supprimer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION CSV GENERES -->
+    <div id="section-csv" class="container view-section">
+        <div class="card">
+            <h2>📄 CSV Générés</h2>
+            <p style="color:#666; font-size:0.9rem;">Liste des fichiers CSV créés à partir de vos archives.</p>
+            
+            <div id="csv-list">
+                <!-- Liste générée par JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 3: PARAMETRES -->
+    <div id="section-parametres" class="container view-section">
+        
+        <!-- Gestion des Classes -->
+        <div class="card">
+            <h3>Gestion des Classes</h3>
+            <div id="settings-classes-list">
+                <!-- Liste des classes inputs -->
+            </div>
+            <button class="btn-secondary" onclick="ajouterClasseInput()">+ Ajouter une classe</button>
+            <br><br>
+            <button class="btn-main" onclick="sauvegarderClasses()">Enregistrer les classes</button>
+        </div>
+
+        <!-- Gestion des Consignes -->
+        <div class="card">
+            <h3>Configuration des Consignes</h3>
+            <p style="font-size:0.9rem; color:#666;">Définissez les consignes, points et couleurs attendues.</p>
+            
+            <div id="settings-consignes-list">
+                <!-- Liste des config consignes -->
+            </div>
+
+            <button class="btn-secondary" onclick="ajouterConsigneConfig()">+ Ajouter une consigne</button>
+            <br><br>
+            <button class="btn-main" onclick="sauvegarderConfigConsignes()">Enregistrer les consignes</button>
+        </div>
+
+        <!-- Réinitialisation -->
+        <div class="card" style="border-color: var(--c-rouge);">
+            <h3 style="color: var(--c-rouge);">🔄 Réinitialisation</h3>
+            <p style="font-size:0.9rem; color:#666;">Si l'application ne fonctionne pas correctement, réinitialisez les paramètres par défaut.</p>
+            <button class="btn-danger" onclick="resetToDefaults()">Réinitialiser tout</button>
+        </div>
+    </div>
+
+    <!-- NOTIFICATION TOAST -->
+    <div id="toast">Message ici</div>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        /* --- CONSTANTES & ETAT GLOBAL --- */
+        const COLORS = ['rouge', 'bleu', 'vert', 'jaune'];
+        const STORAGE_KEYS = {
+            CLASSES: 'eps_classes',
+            CONSIGNES: 'eps_config_consignes',
+            ARCHIVES: 'eps_archives',
+            CSV_FILES: 'eps_csv_files'
+        };
+
+        // Données par défaut si rien en mémoire
+        const DEFAULT_CLASSES = ["6A", "6B", "5A", "5B", "4A", "3A"];
+        const DEFAULT_CONSIGNES = [
+            { id: 1, name: "Consigne 1", points: 2, color: "rouge" },
+            { id: 2, name: "Consigne 2", points: 3, color: "vert" },
+            { id: 3, name: "Consigne 3", points: 5, color: "jaune" }
+        ];
+
+        // État de l'application
+        let state = {
+            classes: [],
+            configConsignes: [],
+            archives: [],
+            csvFiles: [], // Liste des CSV générés
+            saisieEnCours: {} // stocke la réussite { consigneIndex: true/false }
+        };
+
+        /* --- INITIALISATION --- */
+        window.onload = function() {
+            loadData();
+            renderAll();
+        };
+
+        function loadData() {
+            try {
+                // Charger Classes - vérifier que c'est pas un tableau vide
+                const storedClasses = localStorage.getItem(STORAGE_KEYS.CLASSES);
+                if (storedClasses) {
+                    const parsed = JSON.parse(storedClasses);
+                    state.classes = (parsed && parsed.length > 0) ? parsed : [...DEFAULT_CLASSES];
+                } else {
+                    state.classes = [...DEFAULT_CLASSES];
+                }
+
+                // Charger Consignes Config - même logique
+                const storedConsignes = localStorage.getItem(STORAGE_KEYS.CONSIGNES);
+                if (storedConsignes) {
+                    const parsed = JSON.parse(storedConsignes);
+                    state.configConsignes = (parsed && parsed.length > 0) ? parsed : [...DEFAULT_CONSIGNES];
+                } else {
+                    state.configConsignes = [...DEFAULT_CONSIGNES];
+                }
+
+                // Charger Archives
+                const storedArchives = localStorage.getItem(STORAGE_KEYS.ARCHIVES);
+                state.archives = storedArchives ? JSON.parse(storedArchives) : [];
+
+                // Charger CSV Files
+                const storedCSV = localStorage.getItem(STORAGE_KEYS.CSV_FILES);
+                state.csvFiles = storedCSV ? JSON.parse(storedCSV) : [];
+            } catch (e) {
+                console.error("Erreur chargement données:", e);
+                // En cas d'erreur, réinitialiser avec les valeurs par défaut
+                state.classes = [...DEFAULT_CLASSES];
+                state.configConsignes = [...DEFAULT_CONSIGNES];
+                state.archives = [];
+                state.csvFiles = [];
+                showToast("Données réinitialisées (erreur de chargement)");
+            }
+        }
+
+        /* --- FONCTIONS D'AFFICHAGE (RENDER) --- */
+        
+        function showSection(sectionId) {
+            // Cacher toutes les sections
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            // Afficher la demandée
+            document.getElementById('section-' + sectionId).classList.add('active');
+            
+            // Gérer l'état actif des boutons de navigation
+            document.querySelectorAll('.nav-buttons button').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById('nav-' + sectionId);
+            if (activeBtn) activeBtn.classList.add('active');
+            
+            // Re-render si nécessaire
+            if(sectionId === 'archives') renderArchivesTable();
+            if(sectionId === 'parametres') renderSettingsForm();
+            if(sectionId === 'saisie') renderSaisieForm();
+            if(sectionId === 'csv') renderCSVList();
+        }
+
+        function renderAll() {
+            renderSaisieForm();
+            renderSettingsForm();
+            // Archives render est fait à la demande ou au filtre
+        }
+
+        /* --- 1. LOGIQUE ECRAN SAISIE --- */
+
+        function renderSaisieForm() {
+            // Remplir Select Classes
+            const select = document.getElementById('eleve-classe');
+            const currentVal = select.value; // Garder la sélection si possible
+            select.innerHTML = '<option value="">-- Choisir --</option>';
+            state.classes.forEach(cls => {
+                const opt = document.createElement('option');
+                opt.value = cls;
+                opt.textContent = cls;
+                select.appendChild(opt);
+            });
+            if (currentVal) select.value = currentVal;
+
+            // Générer les cartes de consignes
+            const container = document.getElementById('consignes-container');
+            container.innerHTML = '';
+
+            state.configConsignes.forEach((conf, index) => {
+                const div = document.createElement('div');
+                
+                // État actuel (si déjà cliqué)
+                const isSelected = state.saisieEnCours[index] === true;
+                const selectedClass = isSelected ? 'selected' : '';
+                const validationText = isSelected ? 'VALIDÉ ✓' : 'Appuie pour valider';
+
+                // Classe consigne-row avec thème couleur
+                div.className = `consigne-row ${selectedClass} theme-${conf.color}`;
+                
+                // Attributs d'accessibilité pour meilleure compatibilité mobile
+                div.setAttribute('role', 'button');
+                div.setAttribute('tabindex', '0');
+                
+                // Gestionnaire d'événements robuste pour Android
+                let touchMoved = false;
+                let touchHandled = false;
+                
+                div.addEventListener('touchstart', () => { 
+                    touchMoved = false; 
+                    touchHandled = false;
+                }, { passive: true });
+                
+                div.addEventListener('touchmove', () => { 
+                    touchMoved = true; 
+                }, { passive: true });
+                
+                div.addEventListener('touchend', (e) => {
+                    if (!touchMoved) {
+                        touchHandled = true;
+                        toggleColor(index, conf.color);
+                    }
+                });
+                
+                div.addEventListener('click', () => {
+                    // Éviter double déclenchement si touch déjà géré
+                    if (!touchHandled) {
+                        toggleColor(index, conf.color);
+                    }
+                    touchHandled = false;
+                });
+
+                // Création de l'HTML pour une consigne
+                let html = `
+                    <div class="consigne-info">
+                        <h3>${conf.name}</h3>
+                        <span class="badge-points">${conf.points} pts</span>
+                    </div>
+                    
+                    <div class="color-action">
+                        <div id="btn-${index}" class="btn-color-single bg-${conf.color} ${selectedClass}"></div>
+                        <div id="lbl-${index}" class="validation-text">${validationText}</div>
+                    </div>
+                `;
+                
+                div.innerHTML = html;
+                container.appendChild(div);
+            });
+        }
+
+        function toggleColor(consigneIndex, expectedColor) {
+            // Bascule (Toggle)
+            const wasSelected = state.saisieEnCours[consigneIndex] === true;
+            const newState = !wasSelected;
+            
+            state.saisieEnCours[consigneIndex] = newState;
+
+            // Re-render pour mettre à jour toute la row avec les bonnes classes
+            renderSaisieForm();
+        }
+
+        function validerSaisie() {
+            const classe = document.getElementById('eleve-classe').value;
+            const eleveId = document.getElementById('eleve-id').value;
+
+            // Validations basiques
+            if (!classe) return showToast("Veuillez sélectionner une classe.");
+            if (!eleveId || eleveId < 1 || eleveId > 30) return showToast("ID Élève invalide (1-30).");
+
+            let scoreTotal = 0;
+            let detailsResultats = [];
+
+            state.configConsignes.forEach((conf, index) => {
+                // Si coché (true), l'élève a fait la bonne couleur.
+                // Si décoché (false/undefined), c'est considéré comme "Aucun" ou "Raté".
+                const reussite = (state.saisieEnCours[index] === true);
+                
+                if (reussite) {
+                    scoreTotal += parseFloat(conf.points);
+                }
+
+                detailsResultats.push({
+                    name: conf.name,
+                    pointsPossibles: conf.points,
+                    couleurAttendue: conf.color,
+                    // Si réussite, on dit qu'il a choisi la couleur attendue. Sinon "Non validé".
+                    couleurChoisie: reussite ? conf.color : null, 
+                    pointsObtenus: reussite ? parseFloat(conf.points) : 0
+                });
+            });
+
+            // Création de l'archive
+            const newArchive = {
+                id: Date.now(),
+                date: new Date().toLocaleString('fr-FR'),
+                classe: classe,
+                eleveId: eleveId,
+                scoreTotal: scoreTotal,
+                details: detailsResultats
+            };
+
+            // Sauvegarde
+            state.archives.unshift(newArchive); // Ajouter au début
+            localStorage.setItem(STORAGE_KEYS.ARCHIVES, JSON.stringify(state.archives));
+
+            // Feedback & Reset
+            showToast(`Enregistré ! Élève ${eleveId} (${classe}) - Score: ${scoreTotal}`);
+            
+            // Reset state Saisie
+            state.saisieEnCours = {};
+            
+            // Reset formulaire visuel
+            document.getElementById('eleve-id').value = '';
+            renderSaisieForm(); // Cela remet tous les boutons à l'état initial (gris)
+            document.getElementById('eleve-classe').value = classe; // Remettre la classe pour enchainer
+        }
+
+        /* --- 2. LOGIQUE ARCHIVES --- */
+
+        function renderArchivesTable() {
+            const tbody = document.querySelector('#table-archives tbody');
+            const filterClasse = document.getElementById('filter-classe').value;
+            
+            // Remplir le filtre classes dans l'onglet archive
+            const selectFilter = document.getElementById('filter-classe');
+            if (selectFilter.options.length === 1) { // Si seulement "Toutes"
+                 state.classes.forEach(cls => {
+                    const opt = document.createElement('option');
+                    opt.value = cls; opt.textContent = cls;
+                    selectFilter.appendChild(opt);
+                });
+            }
+
+            tbody.innerHTML = '';
+
+            // Filtrer
+            const filtered = state.archives.filter(arc => {
+                if (filterClasse !== 'all' && arc.classe !== filterClasse) return false;
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">Aucune archive trouvée.</td></tr>';
+                return;
+            }
+
+            filtered.forEach(arc => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><small>${arc.date}</small></td>
+                    <td>${arc.classe}</td>
+                    <td>${arc.eleveId}</td>
+                    <td><strong>${arc.scoreTotal}</strong></td>
+                    <td>
+                        <button class="btn-danger" onclick="supprimerArchive(${arc.id})" style="padding:5px;">🗑</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function supprimerArchive(id) {
+            if(!confirm("Supprimer cette entrée ?")) return;
+            state.archives = state.archives.filter(a => a.id !== id);
+            localStorage.setItem(STORAGE_KEYS.ARCHIVES, JSON.stringify(state.archives));
+            renderArchivesTable();
+            showToast("Entrée supprimée");
+        }
+
+        function viderArchives() {
+            if(confirm("ATTENTION : Cela va effacer TOUT l'historique des résultats. Êtes-vous sûr ?")) {
+                state.archives = [];
+                localStorage.setItem(STORAGE_KEYS.ARCHIVES, JSON.stringify([]));
+                renderArchivesTable();
+                showToast("Archives vidées");
+            }
+        }
+
+        /* --- 3. GESTION DES CSV GENERES --- */
+
+        function genererNouveauCSV() {
+            const csvData = generateCSV();
+            if (!csvData) return showToast("Aucune donnée à exporter.");
+
+            const now = new Date();
+            const fileName = `export_eps_${now.toISOString().slice(0,10)}.csv`;
+            
+            // Créer l'objet CSV
+            const newCSV = {
+                id: Date.now(),
+                name: fileName,
+                dateCreation: now.toLocaleString('fr-FR'),
+                content: csvData,
+                size: new Blob([csvData]).size
+            };
+
+            // Sauvegarder
+            state.csvFiles.unshift(newCSV); // Ajouter au début
+            localStorage.setItem(STORAGE_KEYS.CSV_FILES, JSON.stringify(state.csvFiles));
+
+            showToast("CSV généré avec succès !");
+            showSection('csv'); // Rediriger vers l'onglet CSV
+        }
+
+        function renderCSVList() {
+            const container = document.getElementById('csv-list');
+            
+            if (state.csvFiles.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align:center; padding:40px; color:#999;">
+                        <p style="font-size:1.2rem;">📋 Aucun CSV généré</p>
+                        <p>Allez dans l'onglet Archives pour générer un CSV.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+            
+            state.csvFiles.forEach(csv => {
+                const sizeKB = (csv.size / 1024).toFixed(2);
+                
+                const div = document.createElement('div');
+                div.className = 'card';
+                div.style.marginBottom = '15px';
+                div.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+                        <div style="flex:1;">
+                            <div style="font-weight:bold; font-size:1.1rem; margin-bottom:5px;">📄 ${csv.name}</div>
+                            <div style="font-size:0.85rem; color:#666;">
+                                Créé le ${csv.dateCreation} • ${sizeKB} KB
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:15px;">
+                        <button class="btn-main" style="flex:1; padding:10px;" onclick="telechargerCSV(${csv.id})">
+                            📥 Télécharger
+                        </button>
+                        <button class="btn-main" style="flex:1; padding:10px; background:var(--c-vert);" onclick="partagerCSV(${csv.id})">
+                            📤 Partager
+                        </button>
+                        <button class="btn-danger" style="padding:10px;" onclick="supprimerCSV(${csv.id})">
+                            🗑
+                        </button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function telechargerCSV(csvId) {
+            const csv = state.csvFiles.find(c => c.id === csvId);
+            if (!csv) return showToast("CSV introuvable");
+
+            const blob = new Blob([csv.content], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", csv.name);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showToast("Téléchargement démarré");
+        }
+
+        async function partagerCSV(csvId) {
+            const csv = state.csvFiles.find(c => c.id === csvId);
+            if (!csv) return showToast("CSV introuvable");
+
+            // Vérifier si le partage est supporté
+            if (!navigator.share) {
+                console.log("❌ navigator.share n'existe pas");
+                showToast("Partage non supporté sur ce navigateur");
+                return telechargerCSV(csvId);
+            }
+
+            // Ajouter BOM UTF-8 pour compatibilité Excel
+            const BOM = '\uFEFF';
+            const contentWithBOM = BOM + csv.content;
+            
+            // Créer le fichier
+            const blob = new Blob([contentWithBOM], { type: 'text/csv' });
+            const file = new File([blob], csv.name, { 
+                type: 'text/csv',
+                lastModified: Date.now()
+            });
+
+            console.log("🔍 Tentative de partage:", file.name, file.size, "bytes");
+
+            try {
+                // Tenter directement le partage (sans vérifier canShare qui est souvent faux sur file://)
+                await navigator.share({
+                    files: [file],
+                    title: 'Résultats EPS',
+                    text: 'Fichier CSV des résultats'
+                });
+                console.log("✅ Partage réussi");
+                showToast("Partage réussi !");
+            } catch (err) {
+                console.log("❌ Erreur partage:", err.name, err.message);
+                
+                // Annulation par l'utilisateur = normal
+                if (err.name === 'AbortError') {
+                    return;
+                }
+                
+                // NotAllowedError = fichiers pas supportés, essayer sans fichier
+                if (err.name === 'NotAllowedError' || err.name === 'TypeError') {
+                    showToast("Partage de fichiers non supporté. Téléchargement...");
+                    telechargerCSV(csvId);
+                    return;
+                }
+                
+                // Autre erreur
+                showToast("Erreur: " + err.message);
+                telechargerCSV(csvId);
+            }
+        }
+
+        function supprimerCSV(csvId) {
+            if (!confirm("Supprimer ce CSV ?")) return;
+            
+            state.csvFiles = state.csvFiles.filter(c => c.id !== csvId);
+            localStorage.setItem(STORAGE_KEYS.CSV_FILES, JSON.stringify(state.csvFiles));
+            renderCSVList();
+            showToast("CSV supprimé");
+        }
+
+        function generateCSV() {
+            if (state.archives.length === 0) return null;
+
+            // En-tête simplifié
+            let csvContent = "Date;Classe;ID_Eleve;Score_Total;Consigne;Points_Possibles;Couleur_Attendue;Reussi;Points_Obtenus\n";
+
+            // Pour chaque archive (élève)
+            state.archives.forEach(row => {
+                // Pour chaque consigne de cet élève
+                row.details.forEach(d => {
+                    const safeName = d.name.replace(/;/g, ',');
+                    const status = d.couleurChoisie ? 'OUI' : 'NON';
+                    
+                    // Une ligne par consigne
+                    let line = `${row.date};${row.classe};${row.eleveId};${row.scoreTotal};${safeName};${d.pointsPossibles};${d.couleurAttendue};${status};${d.pointsObtenus}`;
+                    csvContent += line + "\n";
+                });
+            });
+
+            return csvContent;
+        }
+
+        /* --- 4. LOGIQUE PARAMETRES --- */
+
+        function renderSettingsForm() {
+            // Classes
+            const classesList = document.getElementById('settings-classes-list');
+            classesList.innerHTML = '';
+            state.classes.forEach((cls, idx) => {
+                const div = document.createElement('div');
+                div.className = 'param-list-item';
+                div.innerHTML = `
+                    <input type="text" value="${cls}" id="class-input-${idx}" style="flex:1;">
+                    <button class="btn-danger" onclick="supprimerClasse(${idx})">X</button>
+                `;
+                classesList.appendChild(div);
+            });
+
+            // Consignes
+            const consignesList = document.getElementById('settings-consignes-list');
+            consignesList.innerHTML = '';
+            state.configConsignes.forEach((conf, idx) => {
+                const div = document.createElement('div');
+                div.className = 'param-consigne-card';
+                
+                // Générer options couleur avec 'selected'
+                let optionsColor = '';
+                COLORS.forEach(c => {
+                    optionsColor += `<option value="${c}" ${conf.color === c ? 'selected' : ''}>${c.toUpperCase()}</option>`;
+                });
+
+                div.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                        <strong>Consigne #${idx+1}</strong>
+                        <button class="btn-danger" onclick="supprimerConsigneConfig(${idx})" style="padding:2px 8px; font-size:0.8rem;">Supprimer</button>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" placeholder="Nom consigne" value="${conf.name}" id="conf-name-${idx}">
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <div style="flex:1">
+                            <label>Points</label>
+                            <input type="number" step="0.5" value="${conf.points}" id="conf-points-${idx}">
+                        </div>
+                        <div style="flex:1">
+                            <label>Attendu</label>
+                            <select id="conf-color-${idx}" style="background-color:${getColorHex(conf.color)}; color:${conf.color==='jaune'?'black':'white'}">
+                                ${optionsColor}
+                            </select>
+                        </div>
+                    </div>
+                `;
+                consignesList.appendChild(div);
+                
+                // Petit hack pour changer la couleur de fond du select quand on change
+                const selectEl = document.getElementById(`conf-color-${idx}`);
+                selectEl.onchange = function() {
+                    this.style.backgroundColor = getColorHex(this.value);
+                    this.style.color = this.value === 'jaune' ? 'black' : 'white';
+                }
+            });
+        }
+
+        function getColorHex(name) {
+            switch(name) {
+                case 'rouge': return '#e74c3c';
+                case 'bleu': return '#3498db';
+                case 'vert': return '#2ecc71';
+                case 'jaune': return '#f1c40f';
+                default: return '#fff';
+            }
+        }
+
+        // --- Actions Paramètres Classes
+        function ajouterClasseInput() {
+            state.classes.push("Nouvelle");
+            renderSettingsForm();
+        }
+        function supprimerClasse(index) {
+            if(state.classes.length <= 1) return showToast("Gardez au moins une classe.");
+            state.classes.splice(index, 1);
+            renderSettingsForm();
+        }
+        function sauvegarderClasses() {
+            // Récupérer les valeurs des inputs
+            const inputs = document.querySelectorAll('[id^="class-input-"]');
+            const newClasses = [];
+            inputs.forEach(inp => {
+                if(inp.value.trim()) newClasses.push(inp.value.trim());
+            });
+            
+            // Ne pas permettre une liste vide
+            if (newClasses.length === 0) {
+                return showToast("Ajoutez au moins une classe !");
+            }
+            
+            state.classes = newClasses;
+            localStorage.setItem(STORAGE_KEYS.CLASSES, JSON.stringify(state.classes));
+            showToast("Classes mises à jour");
+            renderSaisieForm(); // Met à jour le menu déroulant accueil
+        }
+
+        // --- Actions Paramètres Consignes
+        function ajouterConsigneConfig() {
+            state.configConsignes.push({ name: "Nouvelle consigne", points: 1, color: "rouge" });
+            renderSettingsForm();
+        }
+        function supprimerConsigneConfig(index) {
+            state.configConsignes.splice(index, 1);
+            renderSettingsForm();
+        }
+        function sauvegarderConfigConsignes() {
+            const newConf = [];
+            // On parcourt les indices existants dans le DOM
+            
+            for(let i=0; i<state.configConsignes.length; i++) {
+                const name = document.getElementById(`conf-name-${i}`).value;
+                const points = document.getElementById(`conf-points-${i}`).value;
+                const color = document.getElementById(`conf-color-${i}`).value;
+                
+                newConf.push({
+                    name: name,
+                    points: parseFloat(points),
+                    color: color
+                });
+            }
+
+            state.configConsignes = newConf;
+            localStorage.setItem(STORAGE_KEYS.CONSIGNES, JSON.stringify(state.configConsignes));
+            showToast("Consignes mises à jour");
+            renderSaisieForm(); // Met à jour l'écran d'accueil
+        }
+
+        function resetToDefaults() {
+            if (!confirm("⚠️ Ceci va réinitialiser les classes et consignes par défaut.\n\nLes archives et CSV ne seront PAS supprimés.\n\nContinuer ?")) {
+                return;
+            }
+            
+            // Réinitialiser classes et consignes
+            state.classes = [...DEFAULT_CLASSES];
+            state.configConsignes = [...DEFAULT_CONSIGNES];
+            
+            // Sauvegarder dans localStorage
+            localStorage.setItem(STORAGE_KEYS.CLASSES, JSON.stringify(state.classes));
+            localStorage.setItem(STORAGE_KEYS.CONSIGNES, JSON.stringify(state.configConsignes));
+            
+            // Re-render tout
+            renderAll();
+            showToast("✅ Paramètres réinitialisés !");
+        }
+
+
+        /* --- UTILITAIRES --- */
+        function showToast(msg) {
+            const x = document.getElementById("toast");
+            x.textContent = msg;
+            x.className = "show";
+            setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
+        }
+
+        /* --- SERVICE WORKER (PWA) --- */
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('✅ Service Worker enregistré'))
+                    .catch(err => console.log('Service Worker non disponible'));
+            });
+        }
+
+    </script>
+</body>
+</html>
