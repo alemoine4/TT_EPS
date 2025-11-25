@@ -726,37 +726,10 @@
                 // Classe consigne-row avec thème couleur
                 div.className = `consigne-row ${selectedClass} theme-${conf.color}`;
                 
-                // Attributs d'accessibilité pour meilleure compatibilité mobile
-                div.setAttribute('role', 'button');
-                div.setAttribute('tabindex', '0');
-                
-                // Gestionnaire d'événements robuste pour Android
-                let touchMoved = false;
-                let touchHandled = false;
-                
-                div.addEventListener('touchstart', () => { 
-                    touchMoved = false; 
-                    touchHandled = false;
-                }, { passive: true });
-                
-                div.addEventListener('touchmove', () => { 
-                    touchMoved = true; 
-                }, { passive: true });
-                
-                div.addEventListener('touchend', (e) => {
-                    if (!touchMoved) {
-                        touchHandled = true;
-                        toggleColor(index, conf.color);
-                    }
-                });
-                
-                div.addEventListener('click', () => {
-                    // Éviter double déclenchement si touch déjà géré
-                    if (!touchHandled) {
-                        toggleColor(index, conf.color);
-                    }
-                    touchHandled = false;
-                });
+                // Simple onclick - fonctionne sur mobile et desktop
+                div.onclick = function() {
+                    toggleColor(index, conf.color);
+                };
 
                 // Création de l'HTML pour une consigne
                 let html = `
