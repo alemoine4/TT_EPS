@@ -982,40 +982,38 @@
             const BOM = '\uFEFF';
             const contentWithBOM = BOM + csv.content;
             
-            // Créer le fichier
-            const blob = new Blob([contentWithBOM], { type: 'text/csv' });
+            // Utiliser application/octet-stream et extension .csv
+            // Encoder en UTF-8 proprement
+            const encoder = new TextEncoder();
+            const uint8Array = encoder.encode(contentWithBOM);
+            const blob = new Blob([uint8Array], { type: 'application/octet-stream' });
+            
             const file = new File([blob], csv.name, { 
-                type: 'text/csv',
+                type: 'application/octet-stream',
                 lastModified: Date.now()
             });
 
             console.log("🔍 Tentative de partage:", file.name, file.size, "bytes");
 
             try {
-                // Tenter directement le partage (sans vérifier canShare qui est souvent faux sur file://)
                 await navigator.share({
-                    files: [file],
-                    title: 'Résultats EPS',
-                    text: 'Fichier CSV des résultats'
+                    files: [file]
                 });
                 console.log("✅ Partage réussi");
                 showToast("Partage réussi !");
             } catch (err) {
                 console.log("❌ Erreur partage:", err.name, err.message);
                 
-                // Annulation par l'utilisateur = normal
                 if (err.name === 'AbortError') {
                     return;
                 }
                 
-                // NotAllowedError = fichiers pas supportés, essayer sans fichier
                 if (err.name === 'NotAllowedError' || err.name === 'TypeError') {
                     showToast("Partage de fichiers non supporté. Téléchargement...");
                     telechargerCSV(csvId);
                     return;
                 }
                 
-                // Autre erreur
                 showToast("Erreur: " + err.message);
                 telechargerCSV(csvId);
             }
